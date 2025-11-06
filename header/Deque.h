@@ -1,6 +1,10 @@
+﻿//
+// Created by y.grallan on 06/11/2025.
+//
+#pragma once
 #include <memory>
+#include <stdexcept>
 #include <utility>
-#include <iostream>
 
 template<typename T, size_t DequeSize_ = 100ull, size_t ChunkSize_ = 8ull>
 class Deque
@@ -177,7 +181,7 @@ class Deque
 				return data[index];
 			}
 		}
-		
+
 		[[nodiscard]] const T& get_at(size_t index) const
 		{
 			if (is_front_filled())
@@ -188,7 +192,7 @@ class Deque
 			{
 				return data[index];
 			}
-		}		
+		}
 	};
 
 
@@ -199,7 +203,7 @@ class Deque
 	size_t current_size{ 0ull };
 
 	Chunk* map[DequeSize_]{};
-		
+
 	void allocate_first_chunk()
 	{
 		allocate_at(starting_pos);
@@ -223,7 +227,7 @@ class Deque
 			{
 				throw std::bad_alloc();
 			}
-			
+
 			allocate_at(is_front_push ? --index : ++index);
 		}
 
@@ -232,7 +236,7 @@ class Deque
 			map[index]->push_front(std::forward<U>(element));
 		}
 		else
-		{			
+		{
 			map[index]->push_back(std::forward<U>(element));
 		}
 		++current_size;
@@ -248,23 +252,20 @@ class Deque
 		{
 			map[index]->pop_back();
 		}
-		
+
 		if (map[index]->is_empty())
 		{
 			is_front_pop ? ++index : --index;
 		}
-		
+
 		current_size--;
 	}
-	
-public:
-	Deque()
-	{
 
-	}
-	Deque(const Deque& other) : chunk_end_index(other.chunk_end_index), chunk_start_index(other.chunk_start_index), current_size(other.current_size)
+public:
+	Deque() = default;
+	Deque(const Deque& other) : chunk_start_index(other.chunk_start_index), chunk_end_index(other.chunk_end_index), current_size(other.current_size)
 	{
-		for (int i = 0; i < DequeSize_; ++i)
+		for (size_t i = 0; i < DequeSize_; ++i)
 		{
 			if (other.map[i])
 			{
@@ -272,13 +273,13 @@ public:
 			}
 		}
 	}
-	
+
 	Deque& operator=(Deque deque)
 	{
 		swap(*this,deque);
 		return *this;
 	}
-	
+
 	~Deque()
 	{
 		for (size_t i = 0; i < DequeSize_; ++i)
@@ -301,7 +302,7 @@ public:
 	{
 		return current_size;
 	}
-	
+
 	[[nodiscard]] bool is_empty() const noexcept
 	{
 		return size() == 0ull;
@@ -316,9 +317,9 @@ public:
 			allocate_at(--chunk_start_index);
 		}
 
-		push_at(chunk_end_index, std::forward<U>(element), false);	
+		push_at(chunk_end_index, std::forward<U>(element), false);
 	}
-	
+
 	template<typename U = T>
 	void push_front(U&& element)
 	{
@@ -328,7 +329,7 @@ public:
 			allocate_at(++chunk_end_index);
 		}
 
-		push_at(chunk_start_index, std::forward<U>(element), true);		
+		push_at(chunk_start_index, std::forward<U>(element), true);
 	}
 
 	void pop_back()
@@ -341,7 +342,7 @@ public:
 		pop_at(chunk_start_index, true);
 	}
 
-	[[nodiscard]] T& front() 
+	[[nodiscard]] T& front()
 	{
 		if (is_empty())
 		{
@@ -349,7 +350,7 @@ public:
 		}
 		return map[chunk_start_index]->front();
 	}
-	[[nodiscard]] const T& front() const 
+	[[nodiscard]] const T& front() const
 	{
 		if (is_empty())
 		{
@@ -357,8 +358,8 @@ public:
 		}
 		return map[chunk_start_index]->front();
 	}
-	
-	[[nodiscard]] T& back() 
+
+	[[nodiscard]] T& back()
 	{
 		if (is_empty())
 		{
@@ -366,7 +367,7 @@ public:
 		}
 		return map[chunk_end_index]->back();
 	}
-	[[nodiscard]] const T& back() const 
+	[[nodiscard]] const T& back() const
 	{
 		if (is_empty())
 		{
@@ -374,14 +375,14 @@ public:
 		}
 		return map[chunk_end_index]->back();
 	}
-	
+
 	[[nodiscard]] T& get_at(size_t index)
 	{
 		if (is_empty())
 		{
 			throw std::out_of_range("deque is empty, can't access element");
 		}
-		
+
 		Chunk* first_chunk = map[chunk_start_index];
 		const size_t first_chunk_size = first_chunk->size();
 
@@ -404,7 +405,7 @@ public:
 		{
 			throw std::out_of_range("deque is empty, can't access element");
 		}
-		
+
 		Chunk* first_chunk = map[chunk_start_index];
 		const size_t first_chunk_size = first_chunk->size();
 
@@ -431,25 +432,3 @@ public:
 		return get_at(index);
 	}
 };
-
-
-
-int main()
-{
-	Deque<int> a;
-
-	for (int i = 0; i < 5; ++i)
-	{		
-		a.push_back(i);
-		a.push_front(i * 5);
-	}
-
-	for (int i = 0; i < a.size(); ++i)
-	{
-		std::cout << a[i] << " ";
-	}
-
-	Deque<int> b = a;
-	
-	return 0;
-}
