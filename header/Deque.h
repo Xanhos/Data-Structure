@@ -103,6 +103,9 @@ class Deque
 
 		[[nodiscard]] bool is_front_filled() const noexcept
 		{
+			if(is_empty())
+				return false;
+
 			return end_chunk_index == invalid_index || (end_chunk_index == 0 && start_chunk_index == ChunkSize_);
 		}
 
@@ -236,6 +239,15 @@ class Deque
 	template<typename U = T>
 	void push_at(size_t& index, U&& element, const bool is_front_push)
 	{
+		if(is_front_push && !map[index]->is_front_filled())
+		{
+			index--;
+		}
+		else if(!is_front_push && map[index]->is_front_filled())
+		{
+			index++;
+		}
+
 		if (!map[index] || map[index]->is_full())
 		{
 			if ((is_front_push && static_cast<int>(index) - 1 < 0) ||
@@ -330,7 +342,7 @@ public:
 		if (is_empty())
 		{
 			allocate_first_chunk();
-			allocate_at(--chunk_start_index);
+			allocate_at(chunk_start_index - 1);
 		}
 
 		push_at(chunk_end_index, std::forward<U>(element), false);
@@ -342,7 +354,7 @@ public:
 		if (is_empty())
 		{
 			allocate_first_chunk();
-			allocate_at(++chunk_end_index);
+			allocate_at(chunk_end_index + 1);
 		}
 
 		push_at(chunk_start_index, std::forward<U>(element), true);
@@ -524,7 +536,7 @@ public:
 			return !(*this == other);
 		}
 
-		bool operator<=>(const Iterator &) const = default;
+		auto operator<=>(const Iterator &) const = default;
 
 		U& operator[](const difference_type n) const
 		{

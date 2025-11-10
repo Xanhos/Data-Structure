@@ -1,28 +1,43 @@
 ﻿#include <iostream>
+#include <string>
+
 #include "Deque.h"
 #include "Vector.h"
 #include "List.h"
-
+#include "HashMap.h"
 
 namespace DequeMain
 {
     void run()
     {
-        Deque<int> a;
+        Deque<int> b;
 
-        for (int i = 0; i < 5; ++i)
         {
-            a.push_front(-i);
-            a.push_back(i);
+            Deque<int> a;
+            a.push_back(5);
+
+            std::cout << a.front() << "\n";
+            std::cout << a.back() << "\n";
+
+            for (int i = 0; i < 5; ++i)
+            {
+                a.push_front(-i);
+                a.push_back(i);
+            }
+
+            for (const int & element : a)
+            {
+                std::cout << element << " ";
+            }
+            std::cout << "\n";
+            b = a;
         }
 
 
-        for (const int & element : a)
+        for (const int & element : b)
         {
             std::cout << element << " ";
         }
-
-        Deque<int> b = a;
     }
 }
 
@@ -93,6 +108,67 @@ namespace ListMain
     }
 }
 
+namespace HashMapMain
+{
+    void run()
+    {
+        using namespace std::string_literals;
+        std::cout << "\n\n----- Closed Hash map -----\n\n";
+
+        ClosedHashMap::HashMap<std::string, int> closedHashMap;
+        std::vector<std::string> keys;
+
+        for (int i = 0; i < 30; ++i)
+        {
+            closedHashMap.insert(std::to_string(i),i * i );
+            keys.push_back(std::to_string(i));
+        }
+
+
+        for (const auto& key: keys)
+        {
+            std::cout << closedHashMap.find(key) << ' ';
+        }
+        closedHashMap.rehash();
+        std::cout << "\n";
+        closedHashMap.remove("1"s);
+        for (const auto& [key,value] : closedHashMap)
+        {
+            std::cout << "Key : " << key << ' '  << "Value : "<< value << '\n';
+        }
+
+
+        std::cout << "\n\n----- Open Hash map -----\n\n";
+
+
+        OpenHashMap::HashMap<std::string, int> openHashMap;
+        keys.clear();
+
+        for (int i = 0; i < 30; ++i)
+        {
+            openHashMap.insert(std::to_string(i), i);
+            keys.push_back(std::to_string(i));
+        }
+        std::cout << "\n";
+        std::cout << "\n";
+        for (const auto& key: keys)
+        {
+             std::cout << openHashMap.find(key) << ' ';
+        }
+
+        std::cout << "\n";
+        std::cout << "\n";
+
+        for (const auto& [key,value]: openHashMap)
+        {
+            std::cout << "Key : " << key << ' '  << "Value : "<< value << '\n';
+        }
+        openHashMap.remove("15"s);
+
+
+    }
+}
+
 int main()
 {
     std::cout << "\n";
@@ -101,5 +177,10 @@ int main()
     VectorMain::run();
     std::cout << "\n";
     ListMain::run();
+    std::cout << "\n";
+    HashMapMain::run();
+
+
+    return 0;
 
 }
