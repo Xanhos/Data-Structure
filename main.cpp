@@ -16,9 +16,10 @@ namespace DequeMain
             a.push_back(i);
         }
 
-        for (int i = 0; i < a.size(); ++i)
+
+        for (const int & element : a)
         {
-            std::cout << a[i] << " ";
+            std::cout << element << " ";
         }
 
         Deque<int> b = a;
@@ -49,9 +50,9 @@ namespace VectorMain
         a.resize(55);
 
 
-        for (size_t i = 0ull; i < a.get_size(); ++i)
+        for (const auto&  a_ : a)
         {
-            std::cout << a[i] << " ";
+            std::cout << a_  << " ";
         }
 
         return 0;

@@ -31,6 +31,96 @@ class Vector
         capacity = new_capacity;
     }
 
+    template<typename U = T>
+    class Iterator : public std::iterator<std::random_access_iterator_tag, T>
+    {
+        using difference_type = std::ptrdiff_t;
+        friend class Vector<T>;
+
+        U* ptr = nullptr;
+    public:
+        explicit Iterator(U* ptr_) : ptr(ptr_)
+        {
+        }
+
+        U& operator*()
+        {
+            return *ptr;
+        }
+
+        U* operator->()
+        {
+            return ptr;
+        }
+
+        bool operator==(const Iterator & other) const
+        {
+            return other.ptr == ptr;
+        }
+
+        bool operator!=(const Iterator & other) const
+        {
+            return !(other == *this);
+        }
+
+        Iterator& operator++()
+        {
+            ++ptr;
+            return *this;
+        }
+
+        Iterator operator++(int)
+        {
+            auto tmp = *this;
+            ++(*this);
+            return tmp;
+        }
+        Iterator& operator--()
+        {
+            --ptr;
+            return *this;
+        }
+
+        Iterator operator--(int)
+        {
+            auto tmp = *this;
+            --(*this);
+            return tmp;
+        }
+
+        Iterator& operator+=(difference_type offset) {
+            ptr += offset;
+            return *this;
+        }
+
+        Iterator operator+(difference_type offset) const {
+            Iterator tmp = *this;
+            tmp += offset;
+            return tmp;
+        }
+
+        Iterator& operator-=(difference_type offset) {
+            ptr -= offset;
+            return *this;
+        }
+
+        Iterator operator-(difference_type offset) const {
+            Iterator tmp = *this;
+            tmp -= offset;
+            return tmp;
+        }
+
+        difference_type operator-(const Iterator& other) const {
+            return ptr - other.m_ptr;
+        }
+
+        U& operator[](difference_type offset) const {
+            return *(*this + offset);
+        }
+
+        auto operator<=>(const Iterator &) const = default;
+    };
+
 public:
     Vector()
     {
@@ -149,5 +239,25 @@ public:
         }
 
         return array[index];
+    }
+
+    Iterator<T> begin()
+    {
+        return Iterator(array);
+    }
+
+    Iterator<T> end()
+    {
+        return Iterator(array + size);
+    }
+
+    Iterator<const T> begin () const
+    {
+        return Iterator(array);
+    }
+
+    Iterator<const T> end() const
+    {
+        return Iterator(array + size);
     }
 };

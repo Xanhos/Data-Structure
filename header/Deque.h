@@ -154,19 +154,35 @@ class Deque
 
 		[[nodiscard]] T& front()
 		{
-			return data[start_chunk_index];
+			if (is_front_filled())
+			{
+				return data[start_chunk_index];
+			}
+			return data[0];
 		}
 		[[nodiscard]] const T& front() const
 		{
-			return data[start_chunk_index];
+			if (is_front_filled())
+			{
+				return data[start_chunk_index];
+			}
+			return data[0];
 		}
 
 		[[nodiscard]] T& back()
 		{
+			if (is_front_filled())
+			{
+				return data[ChunkSize_ - 1];
+			}
 			return data[end_chunk_index - 1];
 		}
 		[[nodiscard]] const T& back() const
 		{
+			if (is_front_filled())
+			{
+				return data[ChunkSize_ - 1];
+			}
 			return data[end_chunk_index - 1];
 		}
 
@@ -220,7 +236,7 @@ class Deque
 	template<typename U = T>
 	void push_at(size_t& index, U&& element, const bool is_front_push)
 	{
-		if (map[index]->is_full())
+		if (!map[index] || map[index]->is_full())
 		{
 			if ((is_front_push && static_cast<int>(index) - 1 < 0) ||
 				(!is_front_push && index + 1 > DequeSize_))
@@ -378,7 +394,7 @@ public:
 
 	[[nodiscard]] T& get_at(size_t index)
 	{
-		if (is_empty())
+		if (is_empty() || index >= current_size)
 		{
 			throw std::out_of_range("deque is empty, can't access element");
 		}
@@ -401,7 +417,7 @@ public:
 	}
 	[[nodiscard]] const T& get_at(size_t index) const
 	{
-		if (is_empty())
+		if (is_empty() || index >= current_size)
 		{
 			throw std::out_of_range("deque is empty, can't access element");
 		}
@@ -430,5 +446,99 @@ public:
 	[[nodiscard]] const T& operator[](const size_t index) const
 	{
 		return get_at(index);
+	}
+
+	template<typename U = T>
+	class Iterator : public std::iterator<std::random_access_iterator_tag, U>
+	{
+		friend class Deque<T>;
+
+		using difference_type = std::ptrdiff_t;
+		Deque* deque = nullptr;
+		size_t index = 0;
+
+	public:
+		friend void swap(Iterator& first, Iterator& second) noexcept
+		{
+			using std::swap;
+			swap(first.deque_, second.deque_);
+			swap(first.index, second.index);
+		}
+
+		Iterator() = default;
+		explicit Iterator(Deque* deque_,const size_t index_) : deque(deque_), index(index_)
+		{
+		}
+
+		Iterator(const Iterator& other) :  deque(other.deque), index(other.index)
+		{
+		}
+
+		Iterator& operator=(Iterator other)
+		{
+			swap(other,*this);
+			return *this;
+		}
+
+		Iterator& operator++()
+		{
+			++index;
+			return *this;
+		}
+
+		Iterator operator++(int)
+		{
+			auto tmp = *this;
+			++(*this);
+			return tmp;
+		}
+
+		U& operator*() const
+		{
+			return deque->get_at(index);
+		}
+
+		U* operator->() const
+		{
+			return &(deque->get_at(index));
+		}
+
+		Iterator& operator--()
+		{ --index;
+			return *this;
+		}
+
+		Iterator operator--(int)
+		{
+			Iterator tmp = *this;
+			--(*this); return tmp;
+		}
+
+		bool operator==(const Iterator & other) const
+		{
+			return deque == other.deque && other.index == index;
+		}
+
+		bool operator!=(const Iterator & other) const
+		{
+			return !(*this == other);
+		}
+
+		bool operator<=>(const Iterator &) const = default;
+
+		U& operator[](const difference_type n) const
+		{
+			return deque->get_at(index + n);
+		}
+	};
+
+	Iterator<T> begin()
+	{
+		return Iterator<T>(this,0);
+	}
+
+	Iterator<T> end()
+	{
+		return Iterator<T>(this, size());
 	}
 };
