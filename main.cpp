@@ -190,21 +190,22 @@ namespace QuadTreeMain
             quad.insert(Point<float, Player>(Player{"Player " + std::to_string(i), i * 5},static_cast<float>(i),static_cast<float>(i)));
         }
 
-        for (int i = 0; i < point_number; ++i)
+        for (int i = 0; i < quad.size(); ++i)
         {
             if (auto point =  quad.get_at(Point<float>(i,i)))
             {
-                std::cout << std::format("Player name {} has {} hp\n", point->get().data->name, point->get().data->hp);
+                std::cout << std::format("Player name : {}, has : {} hp\n", point->get().data->name, point->get().data->hp);
             }
 
         }
+
+        auto quad_b = quad;
 
     }
 }
 
 int main()
 {
-    QuadTreeMain::run();
     std::cout << "\n";
     DequeMain::run();
     std::cout << "\n";
@@ -213,6 +214,8 @@ int main()
     ListMain::run();
     std::cout << "\n";
     HashMapMain::run();
+    std::cout << "\n";
+    QuadTreeMain::run();
 
 
     return 0;

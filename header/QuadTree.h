@@ -10,8 +10,11 @@
 template<typename Ty_, typename PointType_>
 concept IsAPoint = requires(Ty_ a)
 {
-    {a.x} -> std::same_as<PointType_&>;
-    {a.y} -> std::same_as<PointType_&>;
+    a.x;
+    std::same_as<std::remove_cvref_t<decltype(a.x)>, PointType_>;
+
+    a.y;
+    std::same_as<std::remove_cvref_t<decltype(a.y)>, PointType_>;
 };
 
 template<typename Ty_, typename Data_ = void>
@@ -24,8 +27,9 @@ struct Point
     Point() = default;
 
     template<typename D = Data_,typename T = Ty_>
+    requires (!std::is_same_v<std::remove_cvref_t<D>, Point>)
     explicit Point(D&& data_ ,T&& x_ = 0, T&& y_ = 0) noexcept
-        : x(std::forward<T>(x_)), y(std::forward<T>(y_)), data(std::make_unique<D>(std::forward<D>(data_))) {}
+        : x(std::forward<T>(x_)), y(std::forward<T>(y_)), data(std::make_unique<Data_>(std::forward<Data_>(data_))) {}
 
     void swap(Point& first, Point& second) noexcept
     {
@@ -35,11 +39,23 @@ struct Point
         swap(first.data, second.data);
     }
 
+    Point(const Point& other) : x(other.x), y(other.y)
+    {
+        if (other.data)
+        {
+            data = std::make_unique<Data_>(*other.data);
+        }
+    }
+
+    Point& operator=(Point other)
+    {
+        swap(*this, other);
+        return *this;
+    }
+
 };
 
 
-template<typename Ty_, typename Data_>
-concept PointHasData = !std::same_as<Data_, void>;
 
 template<typename Ty_>
 struct Point<Ty_, void> {
@@ -74,14 +90,6 @@ struct Rectangle {
     bool contains(const Point& p) const {
         return (p.x >= x - width && p.x <= x + width &&
                 p.y >= y - height && p.y <= y + height);
-    }
-
-
-    bool intersects(const Rectangle& other) const {
-        return !(other.x - other.width > x + width ||
-                 other.x + other.width < x - width ||
-                 other.y - other.height > y + height ||
-                 other.y + other.height < y - height);
     }
 
     void swap(Rectangle& first, Rectangle& second) noexcept
@@ -194,6 +202,14 @@ public:
     QuadTree() = default;
 
     explicit QuadTree(const Rectangle<Ty_>& rectangle) noexcept  : boundary(rectangle){}
+
+    QuadTree(const QuadTree& other) : boundary(other.boundary)
+    {
+        for (const auto & point: other.points)
+        {
+            insert(UsedPoint(point));
+        }
+    }
 
     QuadTree& operator=(QuadTree other)
     {
