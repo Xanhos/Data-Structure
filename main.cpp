@@ -1,10 +1,12 @@
 ﻿#include <iostream>
 #include <string>
+#include <format>
 
 #include "Deque.h"
 #include "Vector.h"
 #include "List.h"
 #include "HashMap.h"
+#include "QuadTree.h"
 
 namespace DequeMain
 {
@@ -169,8 +171,40 @@ namespace HashMapMain
     }
 }
 
+namespace QuadTreeMain
+{
+    struct Player
+    {
+        std::string name;
+        int hp;
+    };
+
+    void run()
+    {
+        QuadTree<float, Player> quad{Rectangle<float>(0,0,100,100)};
+        auto size = quad.size();
+
+        constexpr int point_number = 100;
+        for (int i = 0; i < point_number; ++i)
+        {
+            quad.insert(Point<float, Player>(Player{"Player " + std::to_string(i), i * 5},static_cast<float>(i),static_cast<float>(i)));
+        }
+
+        for (int i = 0; i < point_number; ++i)
+        {
+            if (auto point =  quad.get_at(Point<float>(i,i)))
+            {
+                std::cout << std::format("Player name {} has {} hp\n", point->get().data->name, point->get().data->hp);
+            }
+
+        }
+
+    }
+}
+
 int main()
 {
+    QuadTreeMain::run();
     std::cout << "\n";
     DequeMain::run();
     std::cout << "\n";
