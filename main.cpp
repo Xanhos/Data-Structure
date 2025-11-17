@@ -7,6 +7,7 @@
 #include "List.h"
 #include "HashMap.h"
 #include "QuadTree.h"
+#include "Colony.h"
 
 namespace DequeMain
 {
@@ -187,19 +188,48 @@ namespace QuadTreeMain
         constexpr int point_number = 100;
         for (int i = 0; i < point_number; ++i)
         {
-            quad.insert(Point<float, Player>(Player{"Player " + std::to_string(i), i * 5},static_cast<float>(i),static_cast<float>(i)));
+            for (int x = 0; x < 17; ++x)
+            {
+                quad.insert(Point<float, Player>(Player{"Player " + std::to_string(i), i * 5},static_cast<float>(i),static_cast<float>(i)));
+            }
         }
+
+        std::cout << "Get all point \n\n";
 
         for (int i = 0; i < quad.size(); ++i)
         {
-            if (auto point =  quad.get_at(Point<float>(i,i)))
+            if (const auto point =  quad.get_at(Point<float>(i,i)))
             {
                 std::cout << std::format("Player name : {}, has : {} hp\n", point->get().data->name, point->get().data->hp);
             }
+        }
 
+        std::cout << "\n\nGet queried point \n\n";
+
+
+        for (auto & queries_point: quad.queries_points(Rectangle<float>(25,25,50,50)))
+        {
+            std::cout << std::format("Player name : {}, has : {} hp\n", queries_point.get().data->name, queries_point.get().data->hp);
         }
 
         auto quad_b = quad;
+
+    }
+}
+
+namespace ColonyMain
+{
+    void run()
+    {
+        Colony<int> colony;
+
+        for (int i = 0; i < 50; ++i)
+        {
+            colony.insert_back(i);
+        }
+
+        colony.remove(5);
+
 
     }
 }
@@ -216,6 +246,9 @@ int main()
     HashMapMain::run();
     std::cout << "\n";
     QuadTreeMain::run();
+    std::cout << "\n";
+    ColonyMain::run();
+
 
 
     return 0;

@@ -8,6 +8,7 @@
 #include <optional>
 #include <vector>
 #include <utility>
+#include <stdexcept>
 
 namespace ClosedHashMap
 {
@@ -268,13 +269,16 @@ namespace OpenHashMap
         template<typename Key_ = K, typename Value_ = V>
         void insert_at(size_t index, Key_&& key, Value_&& value)
         {
-            if (key == K())
+            if (real_size == m_map.size())
+            {
+                rehash();
+                insert(std::forward<K>(key), std::forward<V>(value));
                 return;
+            }
 
             if (index >= m_map.size())
             {
-                rehash();
-                insert(std::forward<Key_>(key), std::forward<Value_>(value));
+                insert_at(0, std::forward<Key_>(key), std::forward<Value_>(value));
                 return;
             }
 
@@ -327,11 +331,29 @@ namespace OpenHashMap
             throw std::out_of_range("Iterator out of range");
         }
 
+        std::optional<std::reference_wrapper<Cell>> try_find(const K& key)
+        {
+            int index = get_hash(key);
+            for (size_t i = 0; i < m_map.size(); ++i)
+            {
+                index = index + i > m_map.size() ? index + i % m_map.size() : index + i;
+
+                if (m_map[i].pair.first == key)
+                {
+                    if(m_map[i].state == State::OCCUPIED && m_map[i].pair.first == key)
+                    {
+                        return m_map[i];
+                    }
+                }
+            }
+            return std::nullopt;
+        }
     public:
         friend void swap(HashMap& first, HashMap& second) noexcept
         {
             using std::swap;
             swap(first.m_map, second.m_map);
+            swap(first.real_size, second.real_size);
         }
 
         HashMap() : m_map(10)
@@ -341,7 +363,7 @@ namespace OpenHashMap
         {
             for (auto& element: other.m_map)
             {
-
+                insert(element.pair.first, element.pair.second);
             }
         }
 
@@ -354,6 +376,11 @@ namespace OpenHashMap
         template<typename Key_ = K,typename Value_ = V>
         void insert(Key_&& key, Value_&& value)
         {
+            if (auto cell = try_find(key))
+            {
+                cell->get().pair.second = std::forward<V>(value);
+                return;
+            }
             size_t index = get_hash(key);
             insert_at(index, std::forward<Key_>(key), std::forward<Value_>(value));
         }
@@ -376,15 +403,9 @@ namespace OpenHashMap
 
         V& find(const K& key)
         {
-            for (size_t i = get_hash(key); i < m_map.size(); ++i)
+            if (auto cell = try_find(key))
             {
-                if (m_map[i].pair.first == key)
-                {
-                    if(m_map[i].state == State::OCCUPIED && m_map[i].pair.first == key)
-                    {
-                        return m_map[i].pair.second;
-                    }
-                }
+                return cell->get().pair.second;
             }
             throw std::out_of_range("Key doesn't exist");
         }
