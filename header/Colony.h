@@ -6,6 +6,7 @@
 #pragma once
 #include <algorithm>
 #include <array>
+#include <forward_list>
 #include <list>
 #include <stack>
 #include <stdexcept>
@@ -21,9 +22,9 @@ class Colony
         Garbage
     };
 
-    template<size_t Size = sizeof(Ty_)>
     class Cell
     {
+        static constexpr size_t Size = sizeof(Ty_);
         alignas(Ty_) std::array<std::byte, Size> object;
         State state = State::Empty;
 
@@ -90,13 +91,14 @@ class Colony
     };
 
 
-    template<size_t BlockSize>
+    template<size_t BlockSize, bool auto_delete = true>
     class Block
     {
-        std::array<Cell<>, BlockSize> cell_array;
+        std::array<Cell, BlockSize> cell_array;
+        std::stack<Cell*> free_list;
         size_t real_size = 0ull;
-        std::stack<Cell<>*> free_list;
 
+        Block* next = nullptr;
     public:
         Block()
         {
@@ -105,6 +107,14 @@ class Colony
                 free_list.push(&cell_array[i]);
             }
         };
+
+        ~Block()
+        {
+            if constexpr(auto_delete)
+            {
+                delete next;
+            }
+        }
 
         bool is_full() const noexcept
         {
@@ -180,45 +190,87 @@ class Colony
         {
             return real_size;
         }
+
+        bool is_tail() const noexcept
+        {
+            return next == nullptr;
+        }
+
+        void set_next(Block* block)
+        {
+            next = block;
+        }
+
+        Block* get_next()
+        {
+            return next;
+        }
     };
 
     std::pair<Block<BlockSize_>*, size_t> get_block(int index)
     {
-        auto block = colony_array.begin();
-        index -= block->get_real_size();
+        auto block_it = colony_array;
 
-
-        while (index > 0)
+        while (block_it)
         {
-            ++block;
-            if (block == colony_array.end())
+            const size_t size_of_this_block = block_it->get_real_size();
+
+            if (index < size_of_this_block)
             {
-                throw std::out_of_range("Index out of range");
+                return { block_it, index };
             }
 
-            index -= block->get_real_size();
+            index -= size_of_this_block;
+
+            block_it = block_it->get_next();
         }
-        return {&(*block), index + block->get_real_size()};
+         throw std::out_of_range("Index out of range");
     }
 
 
     using FreeList = std::list<Block<BlockSize_>*>;
 
+    using BlockType = Block<BlockSize_>;
 
     size_t current_size = 0ull;
-    std::list<Block<BlockSize_>> colony_array;
+    BlockType* colony_array = nullptr;
     FreeList free_list;
+
+
+    void allocate_new_block()
+    {
+        auto new_block = new BlockType();
+
+        auto it = colony_array;
+        if (!colony_array)
+        {
+            colony_array = new_block;
+        }
+        else
+        {
+            while (!it->is_tail())
+            {
+                it = it->get_next();
+            }
+            it->set_next(new_block);
+        }
+        free_list.push_back(new_block);
+    }
 
 public:
     Colony() = default;
+    ~Colony()
+    {
+        delete colony_array;
+        colony_array = nullptr;
+    }
 
     template<typename T = Ty_>
     void insert_back(T&& element)
     {
         if (free_list.empty())
         {
-            colony_array.emplace_back();
-            free_list.push_back(&colony_array.back());
+            allocate_new_block();
         }
 
         Block<BlockSize_>* block = free_list.back();
@@ -235,7 +287,74 @@ public:
     {
         auto block = get_block(index);
         block.first->remove(block.second);
+        if (!std::ranges::any_of(free_list, [&](const BlockType* free_block) {return free_block == block.first;}))
+        {
+            free_list.push_back(block.first);
+        }
         --current_size;
     }
 
+    Ty_& get_at(const size_t index)
+    {
+        auto block = get_block(index);
+        return *block.first->get_at(block.second);
+    }
+
+    size_t size() const noexcept
+    {
+        return current_size;
+    }
+
+    class Iterator : std::iterator<std::forward_iterator_tag, Ty_>
+    {
+        using pointer = Ty_*;
+        using reference = Ty_&;
+
+        size_t index = 0ull;
+        Colony* colony;
+    public:
+        Iterator() = default;
+        explicit Iterator(Colony* colony_, size_t index_) : colony(colony_), index(index_){}
+
+        reference operator*()
+        {
+            return colony->get_at(index);
+        }
+
+        pointer operator->()
+        {
+            return &colony->get_at(index);
+        }
+
+        bool operator==(const Iterator & other) const
+        {
+            return index == other.index && colony == other.colony;
+        }
+
+        bool operator!=(const Iterator &) const = default;
+        auto operator<=>(const Iterator&) const = default;
+
+        Iterator& operator++()
+        {
+            ++index;
+            return *this;
+        }
+
+        Iterator operator++(int)
+        {
+            auto tmp = *this;
+            ++(*this);
+            return tmp;
+        }
+    };
+
+    Iterator begin()
+    {
+        return Iterator(this, 0);
+    }
+
+    Iterator end()
+    {
+        return Iterator(this, current_size);
+    }
 };

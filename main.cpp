@@ -228,8 +228,28 @@ namespace ColonyMain
             colony.insert_back(i);
         }
 
-        colony.remove(5);
+        for (size_t i = colony.size(); i-- > 0; )
+        {
+            if (colony.get_at(i) % 2 == 0)
+            {
+                colony.remove(i);
+            }
+        }
 
+        for (const int & element : colony)
+        {
+            std::cout << "Colony element " << element << "\n";
+        }
+        std::cout << "\n\n";
+        for (int i = 0; i < 25; ++i)
+        {
+            colony.insert_back(i * 1000);
+        }
+
+        for (const int & element : colony)
+        {
+            std::cout << "Colony element " << element << "\n";
+        }
 
     }
 }
