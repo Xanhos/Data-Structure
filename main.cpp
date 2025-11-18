@@ -228,6 +228,11 @@ namespace ColonyMain
             colony.insert_back(i);
         }
 
+        for (int i = 0; i < 9; ++i)
+        {
+            colony.remove(1);
+        }
+
         for (size_t i = colony.size(); i-- > 0; )
         {
             if (colony.get_at(i) % 2 == 0)

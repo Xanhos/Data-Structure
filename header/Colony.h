@@ -10,6 +10,7 @@
 #include <list>
 #include <stack>
 #include <stdexcept>
+#include <utility>
 
 
 template<typename Ty_, size_t BlockSize_ = 16ull>
@@ -94,11 +95,37 @@ class Colony
     template<size_t BlockSize, bool auto_delete = true>
     class Block
     {
-        std::array<Cell, BlockSize> cell_array;
-        std::stack<Cell*> free_list;
+        using CellPair = std::pair<Cell, int>;
+
+        std::array<CellPair, BlockSize> cell_array;
+        std::stack<CellPair*> free_list;
         size_t real_size = 0ull;
 
         Block* next = nullptr;
+
+        void calculate_range_on_deleted_element(int index)
+        {
+            auto element = cell_array[index];
+            if (index + 1 < cell_array.size() && cell_array[index + 1].second > -1)
+            {
+                element.second = cell_array[index + 1].second + 1;
+            }
+            else element.second = 0;
+            if (index - 1 >= 0 && cell_array[index - 1].second > -1)
+            {
+                cell_array[index - 1].second = element.second + 1;
+                calculate_range_on_deleted_element(index - 1);
+            }
+        }
+
+        void calculate_range_on_inserted_element(CellPair* emplacement)
+        {
+            if (emplacement != &(*cell_array.begin()) && (emplacement - 1)->second > -1)
+            {
+                (emplacement - 1)->second = 0;
+                calculate_range_on_deleted_element((emplacement - 1) - &(*cell_array.begin()));
+            }
+        }
     public:
         Block()
         {
@@ -133,7 +160,9 @@ class Colony
             auto emplacement = free_list.top();
             free_list.pop();
 
-            emplacement->set_object(std::forward<T>(element));
+            emplacement->first.set_object(std::forward<T>(element));
+            emplacement->second = -1;
+            calculate_range_on_inserted_element(emplacement);
             ++real_size;
             return true;
         }
@@ -148,14 +177,20 @@ class Colony
             }
 
             int id = 0;
-            for (auto & element: cell_array)
+            for (int i = 0; i < cell_array.size(); ++i)
             {
-                if (!element.is_free())
+                auto& element = cell_array[i];
+
+                if (!element.first.is_free())
                 {
                     if (id++ == index)
                     {
-                        return element.get();
+                        return element.first.get();
                     }
+                }
+                else if (element.second > -1)
+                {
+                    i += element.second;
                 }
             }
 
@@ -171,17 +206,24 @@ class Colony
             }
 
             int id = 0;
-            for (auto & element: cell_array)
+            for (int i = 0; i < cell_array.size(); ++i)
             {
-                if (!element.is_free())
+                auto& element = cell_array[i];
+                if (!element.first.is_free())
                 {
                     if (id++ == index)
                     {
-                        element.free();
+                        element.first.free();
+                        element.second = 0;
+                        calculate_range_on_deleted_element(i);
                         free_list.push(&element);
                         --real_size;
                         return;
                     }
+                }
+                else
+                {
+                    i += element.second;
                 }
             }
         }
